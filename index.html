@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <title>Funk Music Player</title>
 
   <style>
@@ -12,12 +13,14 @@
 
     body {
       margin: 0;
+      padding: 0;
       font-family: Arial, sans-serif;
       background: #111;
       color: #fff;
     }
 
     .player {
+      width: 100%;
       max-width: 700px;
       margin: auto;
       padding: 20px;
@@ -25,18 +28,19 @@
 
     h1 {
       text-align: center;
-      margin-bottom: 20px;
+      margin: 10px 0 20px;
+      font-size: 28px;
     }
 
     .now-playing {
       background: #1d1d1d;
-      border-radius: 15px;
+      border-radius: 12px;
       padding: 20px;
       margin-bottom: 20px;
     }
 
     #songName {
-      font-size: 20px;
+      font-size: 18px;
       font-weight: bold;
       margin-bottom: 15px;
       word-break: break-all;
@@ -50,32 +54,37 @@
       display: flex;
       justify-content: center;
       gap: 10px;
-      margin: 15px 0;
+      margin-top: 15px;
     }
 
     button {
       border: none;
-      border-radius: 10px;
-      padding: 12px 18px;
+      border-radius: 8px;
+      padding: 10px 16px;
       background: #333;
-      color: white;
+      color: #fff;
       cursor: pointer;
-      font-size: 16px;
+      font-size: 15px;
     }
 
     button:hover {
       background: #555;
     }
 
+    button.active {
+      background: #666;
+    }
+
     .playlist {
       background: #1d1d1d;
-      border-radius: 15px;
+      border-radius: 12px;
       padding: 10px;
     }
 
     .song {
-      padding: 14px;
-      border-radius: 10px;
+      padding: 13px;
+      margin-bottom: 4px;
+      border-radius: 8px;
       cursor: pointer;
       word-break: break-all;
     }
@@ -93,211 +102,333 @@
       color: #aaa;
       padding: 20px;
     }
+
+    .error {
+      color: #ff7777;
+    }
+
+    @media (max-width: 500px) {
+
+      .player {
+        padding: 12px;
+      }
+
+      h1 {
+        font-size: 23px;
+      }
+
+      .controls {
+        gap: 6px;
+      }
+
+      button {
+        padding: 9px 12px;
+        font-size: 14px;
+      }
+    }
   </style>
 </head>
 
 <body>
 
-<div class="player">
+  <div class="player">
 
-  <h1>🎵 Funk Music</h1>
+    <h1>Funk Music</h1>
 
-  <div class="now-playing">
-    <div id="songName">尚未選擇歌曲</div>
+    <div class="now-playing">
 
-    <audio id="audio" controls></audio>
+      <div id="songName">
+        No song selected
+      </div>
 
-    <div class="controls">
-      <button onclick="previousSong()">⏮️</button>
-      <button onclick="toggleRandom()">🔀</button>
-      <button onclick="nextSong()">⏭️</button>
+      <audio id="audio" controls preload="metadata"></audio>
+
+      <div class="controls">
+
+        <button id="previousButton" onclick="previousSong()">
+          Previous
+        </button>
+
+        <button id="randomButton" onclick="toggleRandom()">
+          Random: Off
+        </button>
+
+        <button id="nextButton" onclick="nextSong()">
+          Next
+        </button>
+
+      </div>
+
     </div>
+
+    <div class="playlist">
+
+      <div id="status">
+        Loading music...
+      </div>
+
+      <div id="playlist"></div>
+
+    </div>
+
   </div>
 
-  <div class="playlist">
-    <div id="status">正在讀取 GitHub 音樂...</div>
-    <div id="playlist"></div>
-  </div>
+  <script>
 
-</div>
+    const API_URL =
+      "https://api.github.com/repos/Baiyanscript/music/contents/funk";
 
-<script>
+    const RAW_URL =
+      "https://raw.githubusercontent.com/Baiyanscript/music/main/funk/";
 
-const API_URL =
-  "https://api.github.com/repos/Baiyanscript/music/contents/funk";
+    const audio =
+      document.getElementById("audio");
 
-const RAW_URL =
-  "https://raw.githubusercontent.com/Baiyanscript/music/main/funk/";
+    const playlist =
+      document.getElementById("playlist");
 
-const audio = document.getElementById("audio");
-const playlist = document.getElementById("playlist");
-const songName = document.getElementById("songName");
-const status = document.getElementById("status");
+    const songName =
+      document.getElementById("songName");
 
-let songs = [];
-let currentIndex = 0;
-let randomMode = false;
+    const status =
+      document.getElementById("status");
+
+    const randomButton =
+      document.getElementById("randomButton");
+
+    let songs = [];
+
+    let currentIndex = 0;
+
+    let randomMode = false;
 
 
-// 讀取 GitHub funk 資料夾
-async function loadSongs() {
+    async function loadSongs() {
 
-  try {
+      try {
 
-    const response = await fetch(API_URL);
+        const response =
+          await fetch(API_URL);
 
-    if (!response.ok) {
-      throw new Error("GitHub API 讀取失敗");
+        if (!response.ok) {
+
+          throw new Error(
+            "GitHub API request failed"
+          );
+
+        }
+
+        const files =
+          await response.json();
+
+        songs = files.filter(file =>
+
+          file.type === "file" &&
+
+          file.name
+            .toLowerCase()
+            .endsWith(".mp3")
+
+        );
+
+        if (songs.length === 0) {
+
+          status.textContent =
+            "No MP3 files found.";
+
+          return;
+        }
+
+        status.style.display = "none";
+
+        songs.forEach((song, index) => {
+
+          const item =
+            document.createElement("div");
+
+          item.className = "song";
+
+          item.textContent =
+            song.name;
+
+          item.onclick = () => {
+
+            playSong(index);
+
+          };
+
+          playlist.appendChild(item);
+
+        });
+
+        playSong(0);
+
+      } catch (error) {
+
+        console.error(error);
+
+        status.className = "error";
+
+        status.textContent =
+          "Unable to load music: " +
+          error.message;
+
+      }
+
     }
 
-    const files = await response.json();
 
-    songs = files.filter(file =>
-      file.type === "file" &&
-      file.name.toLowerCase().endsWith(".mp3")
+    function playSong(index) {
+
+      if (!songs[index]) {
+        return;
+      }
+
+      currentIndex = index;
+
+      const song =
+        songs[index];
+
+      audio.src =
+        RAW_URL +
+        encodeURIComponent(song.name);
+
+      songName.textContent =
+        song.name;
+
+      updateActiveSong();
+
+      audio.play().catch(() => {});
+
+    }
+
+
+    function updateActiveSong() {
+
+      const items =
+        document.querySelectorAll(".song");
+
+      items.forEach((item, index) => {
+
+        if (index === currentIndex) {
+
+          item.classList.add("active");
+
+        } else {
+
+          item.classList.remove("active");
+
+        }
+
+      });
+
+    }
+
+
+    function nextSong() {
+
+      if (songs.length === 0) {
+        return;
+      }
+
+      if (randomMode) {
+
+        let nextIndex;
+
+        do {
+
+          nextIndex =
+            Math.floor(
+              Math.random() * songs.length
+            );
+
+        } while (
+          songs.length > 1 &&
+          nextIndex === currentIndex
+        );
+
+        currentIndex = nextIndex;
+
+      } else {
+
+        currentIndex++;
+
+        if (
+          currentIndex >= songs.length
+        ) {
+
+          currentIndex = 0;
+
+        }
+
+      }
+
+      playSong(currentIndex);
+
+    }
+
+
+    function previousSong() {
+
+      if (songs.length === 0) {
+        return;
+      }
+
+      currentIndex--;
+
+      if (currentIndex < 0) {
+
+        currentIndex =
+          songs.length - 1;
+
+      }
+
+      playSong(currentIndex);
+
+    }
+
+
+    function toggleRandom() {
+
+      randomMode =
+        !randomMode;
+
+      if (randomMode) {
+
+        randomButton.textContent =
+          "Random: On";
+
+        randomButton.classList.add(
+          "active"
+        );
+
+      } else {
+
+        randomButton.textContent =
+          "Random: Off";
+
+        randomButton.classList.remove(
+          "active"
+        );
+
+      }
+
+    }
+
+
+    audio.addEventListener(
+      "ended",
+      () => {
+
+        nextSong();
+
+      }
     );
 
-    if (songs.length === 0) {
-      status.textContent = "找不到 MP3 音樂";
-      return;
-    }
 
-    status.style.display = "none";
+    loadSongs();
 
-    songs.forEach((song, index) => {
-
-      const item = document.createElement("div");
-
-      item.className = "song";
-      item.textContent = "🎵 " + song.name;
-
-      item.onclick = () => {
-        playSong(index);
-      };
-
-      playlist.appendChild(item);
-
-    });
-
-    playSong(0);
-
-  } catch (error) {
-
-    console.error(error);
-
-    status.textContent =
-      "無法讀取 GitHub 音樂：" + error.message;
-
-  }
-}
-
-
-// 播放歌曲
-function playSong(index) {
-
-  if (!songs[index]) return;
-
-  currentIndex = index;
-
-  const song = songs[index];
-
-  audio.src = RAW_URL + encodeURIComponent(song.name);
-
-  songName.textContent = song.name;
-
-  updateActiveSong();
-
-  audio.play().catch(() => {});
-
-}
-
-
-// 更新目前歌曲
-function updateActiveSong() {
-
-  const items = document.querySelectorAll(".song");
-
-  items.forEach((item, index) => {
-
-    item.classList.toggle(
-      "active",
-      index === currentIndex
-    );
-
-  });
-
-}
-
-
-// 下一首
-function nextSong() {
-
-  if (songs.length === 0) return;
-
-  if (randomMode) {
-
-    let next;
-
-    do {
-      next = Math.floor(Math.random() * songs.length);
-    }
-    while (songs.length > 1 && next === currentIndex);
-
-    currentIndex = next;
-
-  } else {
-
-    currentIndex++;
-
-    if (currentIndex >= songs.length) {
-      currentIndex = 0;
-    }
-
-  }
-
-  playSong(currentIndex);
-}
-
-
-// 上一首
-function previousSong() {
-
-  if (songs.length === 0) return;
-
-  currentIndex--;
-
-  if (currentIndex < 0) {
-    currentIndex = songs.length - 1;
-  }
-
-  playSong(currentIndex);
-}
-
-
-// 隨機播放
-function toggleRandom() {
-
-  randomMode = !randomMode;
-
-  alert(
-    randomMode
-      ? "🔀 隨機播放：開啟"
-      : "🔀 隨機播放：關閉"
-  );
-
-}
-
-
-// 播放完自動下一首
-audio.addEventListener("ended", () => {
-  nextSong();
-});
-
-
-// 開始讀取
-loadSongs();
-
-</script>
+  </script>
 
 </body>
 </html>
