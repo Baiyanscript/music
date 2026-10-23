@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <title>Funk Music Player</title>
+  <title>Funk Media Player</title>
 
   <style>
     * {
@@ -13,14 +12,12 @@
 
     body {
       margin: 0;
-      padding: 0;
-      font-family: Arial, sans-serif;
       background: #111;
       color: #fff;
+      font-family: Arial, sans-serif;
     }
 
     .player {
-      width: 100%;
       max-width: 700px;
       margin: auto;
       padding: 20px;
@@ -28,65 +25,68 @@
 
     h1 {
       text-align: center;
-      margin: 10px 0 20px;
       font-size: 28px;
     }
 
-    .now-playing {
+    .now-playing,
+    .playlist {
       background: #1d1d1d;
       border-radius: 12px;
-      padding: 20px;
+      padding: 16px;
       margin-bottom: 20px;
     }
 
-    #songName {
+    #fileName {
       font-size: 18px;
       font-weight: bold;
-      margin-bottom: 15px;
-      word-break: break-all;
+      margin-bottom: 14px;
+      overflow-wrap: anywhere;
     }
 
-    audio {
+    #mediaPlayer {
+      display: block;
       width: 100%;
+      max-height: 65vh;
+      background: #000;
+      border-radius: 8px;
+    }
+
+    audio#mediaPlayer {
+      max-height: none;
     }
 
     .controls {
       display: flex;
       justify-content: center;
-      gap: 10px;
+      flex-wrap: wrap;
+      gap: 8px;
       margin-top: 15px;
     }
 
-    button {
-      border: none;
-      border-radius: 8px;
-      padding: 10px 16px;
+    button,
+    select {
       background: #333;
       color: #fff;
+      border: 1px solid #555;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 14px;
+    }
+
+    button {
       cursor: pointer;
-      font-size: 15px;
     }
 
-    button:hover {
-      background: #555;
-    }
-
+    button:hover,
     button.active {
-      background: #666;
-    }
-
-    .playlist {
-      background: #1d1d1d;
-      border-radius: 12px;
-      padding: 10px;
+      background: #555;
     }
 
     .song {
       padding: 13px;
-      margin-bottom: 4px;
       border-radius: 8px;
       cursor: pointer;
-      word-break: break-all;
+      overflow-wrap: anywhere;
     }
 
     .song:hover {
@@ -95,20 +95,35 @@
 
     .song.active {
       background: #444;
+      border-left: 3px solid #fff;
+    }
+
+    .file-type {
+      display: inline-block;
+      min-width: 52px;
+      margin-right: 8px;
+      color: #aaa;
+      font-size: 12px;
     }
 
     #status {
+      padding: 16px 4px;
       text-align: center;
       color: #aaa;
-      padding: 20px;
+      overflow-wrap: anywhere;
     }
 
     .error {
-      color: #ff7777;
+      color: #ff8888 !important;
+    }
+
+    .count {
+      color: #aaa;
+      font-size: 13px;
+      margin-bottom: 10px;
     }
 
     @media (max-width: 500px) {
-
       .player {
         padding: 12px;
       }
@@ -117,318 +132,245 @@
         font-size: 23px;
       }
 
-      .controls {
-        gap: 6px;
-      }
-
       button {
-        padding: 9px 12px;
-        font-size: 14px;
+        padding: 10px 12px;
       }
     }
   </style>
 </head>
 
 <body>
-
   <div class="player">
-
-    <h1>Funk Music</h1>
+    <h1>Funk Media Player</h1>
 
     <div class="now-playing">
+      <div id="fileName">No file selected</div>
 
-      <div id="songName">
-        No song selected
-      </div>
+      <video
+        id="mediaPlayer"
+        controls
+        playsinline
+        preload="metadata"
+        hidden>
+      </video>
 
-      <audio id="audio" controls preload="metadata"></audio>
+      <audio
+        id="audioPlayer"
+        controls
+        preload="metadata"
+        hidden>
+      </audio>
 
       <div class="controls">
-
-        <button id="previousButton" onclick="previousSong()">
-          Previous
-        </button>
-
-        <button id="randomButton" onclick="toggleRandom()">
-          Random: Off
-        </button>
-
-        <button id="nextButton" onclick="nextSong()">
-          Next
-        </button>
-
+        <button id="previousButton">Previous</button>
+        <button id="randomButton">Random: Off</button>
+        <button id="nextButton">Next</button>
       </div>
-
     </div>
 
     <div class="playlist">
-
-      <div id="status">
-        Loading music...
-      </div>
-
+      <div id="count" class="count"></div>
+      <div id="status">Loading files from GitHub...</div>
       <div id="playlist"></div>
-
     </div>
-
   </div>
 
   <script>
-
     const API_URL =
       "https://api.github.com/repos/Baiyanscript/music/contents/funk";
 
     const RAW_URL =
       "https://raw.githubusercontent.com/Baiyanscript/music/main/funk/";
 
-    const audio =
-      document.getElementById("audio");
+    const video = document.getElementById("mediaPlayer");
+    const audio = document.getElementById("audioPlayer");
+    const fileName = document.getElementById("fileName");
+    const playlist = document.getElementById("playlist");
+    const status = document.getElementById("status");
+    const count = document.getElementById("count");
+    const randomButton = document.getElementById("randomButton");
 
-    const playlist =
-      document.getElementById("playlist");
-
-    const songName =
-      document.getElementById("songName");
-
-    const status =
-      document.getElementById("status");
-
-    const randomButton =
-      document.getElementById("randomButton");
-
-    let songs = [];
-
-    let currentIndex = 0;
-
+    let files = [];
+    let currentIndex = -1;
     let randomMode = false;
 
+    function getExtension(name) {
+      const dot = name.lastIndexOf(".");
+      return dot >= 0 ? name.slice(dot).toLowerCase() : "";
+    }
 
-    async function loadSongs() {
+    function getFileType(name) {
+      const ext = getExtension(name);
 
+      if (ext === ".mp3") return "MP3";
+      if (ext === ".mp4") return "MP4";
+      if (ext === ".webm") return "WEBM";
+
+      return "";
+    }
+
+    async function loadFiles() {
       try {
-
-        const response =
-          await fetch(API_URL);
+        const response = await fetch(API_URL);
 
         if (!response.ok) {
+          if (response.status === 403) {
+            throw new Error(
+              "GitHub API rate limit reached. Please try again later."
+            );
+          }
 
           throw new Error(
-            "GitHub API request failed"
+            "GitHub request failed: " + response.status
           );
-
         }
 
-        const files =
-          await response.json();
+        const data = await response.json();
 
-        songs = files.filter(file =>
+        if (!Array.isArray(data)) {
+          throw new Error("Invalid GitHub folder response.");
+        }
 
-          file.type === "file" &&
+        files = data
+          .filter(item =>
+            item.type === "file" &&
+            [".mp3", ".mp4", ".webm"].includes(
+              getExtension(item.name)
+            )
+          )
+          .sort((a, b) =>
+            a.name.localeCompare(b.name)
+          );
 
-          file.name
-            .toLowerCase()
-            .endsWith(".mp3")
-
-        );
-
-        if (songs.length === 0) {
-
-          status.textContent =
-            "No MP3 files found.";
-
+        if (files.length === 0) {
+          status.textContent = "No MP3, MP4 or WEBM files found.";
           return;
         }
 
-        status.style.display = "none";
+        status.hidden = true;
+        count.textContent = "Files found: " + files.length;
 
-        songs.forEach((song, index) => {
-
-          const item =
-            document.createElement("div");
-
+        files.forEach((file, index) => {
+          const item = document.createElement("div");
           item.className = "song";
 
-          item.textContent =
-            song.name;
+          const type = document.createElement("span");
+          type.className = "file-type";
+          type.textContent = getFileType(file.name);
 
-          item.onclick = () => {
+          const name = document.createElement("span");
+          name.textContent = file.name;
 
-            playSong(index);
-
-          };
+          item.append(type, name);
+          item.addEventListener("click", () => playFile(index));
 
           playlist.appendChild(item);
-
         });
 
-        playSong(0);
+        playFile(0, false);
 
       } catch (error) {
-
         console.error(error);
-
         status.className = "error";
-
-        status.textContent =
-          "Unable to load music: " +
-          error.message;
-
+        status.textContent = "Unable to load files: " + error.message;
       }
-
     }
 
-
-    function playSong(index) {
-
-      if (!songs[index]) {
-        return;
-      }
+    function playFile(index, autoplay = true) {
+      if (!files[index]) return;
 
       currentIndex = index;
 
-      const song =
-        songs[index];
+      const file = files[index];
+      const ext = getExtension(file.name);
+      const url = RAW_URL +
+        file.name.split("/").map(encodeURIComponent).join("/");
 
-      audio.src =
-        RAW_URL +
-        encodeURIComponent(song.name);
+      fileName.textContent = file.name;
 
-      songName.textContent =
-        song.name;
+      const isAudio = ext === ".mp3";
 
-      updateActiveSong();
+      if (isAudio) {
+        video.pause();
+        video.removeAttribute("src");
+        video.load();
+        video.hidden = true;
 
-      audio.play().catch(() => {});
+        audio.hidden = false;
+        audio.src = url;
+        audio.load();
 
-    }
-
-
-    function updateActiveSong() {
-
-      const items =
-        document.querySelectorAll(".song");
-
-      items.forEach((item, index) => {
-
-        if (index === currentIndex) {
-
-          item.classList.add("active");
-
-        } else {
-
-          item.classList.remove("active");
-
+        if (autoplay) {
+          audio.play().catch(() => {});
         }
-
-      });
-
-    }
-
-
-    function nextSong() {
-
-      if (songs.length === 0) {
-        return;
-      }
-
-      if (randomMode) {
-
-        let nextIndex;
-
-        do {
-
-          nextIndex =
-            Math.floor(
-              Math.random() * songs.length
-            );
-
-        } while (
-          songs.length > 1 &&
-          nextIndex === currentIndex
-        );
-
-        currentIndex = nextIndex;
-
       } else {
+        audio.pause();
+        audio.removeAttribute("src");
+        audio.load();
+        audio.hidden = true;
 
-        currentIndex++;
+        video.hidden = false;
+        video.src = url;
+        video.load();
 
-        if (
-          currentIndex >= songs.length
-        ) {
-
-          currentIndex = 0;
-
+        if (autoplay) {
+          video.play().catch(() => {});
         }
-
       }
 
-      playSong(currentIndex);
-
+      updateActiveFile();
     }
 
-
-    function previousSong() {
-
-      if (songs.length === 0) {
-        return;
-      }
-
-      currentIndex--;
-
-      if (currentIndex < 0) {
-
-        currentIndex =
-          songs.length - 1;
-
-      }
-
-      playSong(currentIndex);
-
+    function updateActiveFile() {
+      document.querySelectorAll(".song").forEach((item, index) => {
+        item.classList.toggle("active", index === currentIndex);
+      });
     }
 
+    function nextFile() {
+      if (!files.length) return;
+
+      let index;
+
+      if (randomMode && files.length > 1) {
+        do {
+          index = Math.floor(Math.random() * files.length);
+        } while (index === currentIndex);
+      } else {
+        index = (currentIndex + 1) % files.length;
+      }
+
+      playFile(index);
+    }
+
+    function previousFile() {
+      if (!files.length) return;
+
+      const index =
+        (currentIndex - 1 + files.length) % files.length;
+
+      playFile(index);
+    }
 
     function toggleRandom() {
-
-      randomMode =
-        !randomMode;
-
-      if (randomMode) {
-
-        randomButton.textContent =
-          "Random: On";
-
-        randomButton.classList.add(
-          "active"
-        );
-
-      } else {
-
-        randomButton.textContent =
-          "Random: Off";
-
-        randomButton.classList.remove(
-          "active"
-        );
-
-      }
-
+      randomMode = !randomMode;
+      randomButton.textContent =
+        randomMode ? "Random: On" : "Random: Off";
+      randomButton.classList.toggle("active", randomMode);
     }
 
+    document.getElementById("previousButton")
+      .addEventListener("click", previousFile);
 
-    audio.addEventListener(
-      "ended",
-      () => {
+    document.getElementById("nextButton")
+      .addEventListener("click", nextFile);
 
-        nextSong();
+    randomButton.addEventListener("click", toggleRandom);
 
-      }
-    );
+    audio.addEventListener("ended", nextFile);
+    video.addEventListener("ended", nextFile);
 
-
-    loadSongs();
-
+    loadFiles();
   </script>
-
 </body>
 </html>
