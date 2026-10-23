@@ -18,7 +18,7 @@
     }
 
     .player {
-      max-width: 700px;
+      max-width: 800px;
       margin: auto;
       padding: 20px;
     }
@@ -29,7 +29,7 @@
     }
 
     .now-playing,
-    .playlist {
+    .section {
       background: #1d1d1d;
       border-radius: 12px;
       padding: 16px;
@@ -43,7 +43,7 @@
       overflow-wrap: anywhere;
     }
 
-    #mediaPlayer {
+    #videoPlayer {
       display: block;
       width: 100%;
       max-height: 65vh;
@@ -51,8 +51,8 @@
       border-radius: 8px;
     }
 
-    audio#mediaPlayer {
-      max-height: none;
+    #audioPlayer {
+      width: 100%;
     }
 
     .controls {
@@ -63,23 +63,30 @@
       margin-top: 15px;
     }
 
-    button,
-    select {
+    button {
       background: #333;
       color: #fff;
       border: 1px solid #555;
       border-radius: 8px;
       padding: 10px 14px;
       font-size: 14px;
-    }
-
-    button {
       cursor: pointer;
     }
 
     button:hover,
     button.active {
       background: #555;
+    }
+
+    .section h2 {
+      margin-top: 0;
+      font-size: 20px;
+    }
+
+    .section-count {
+      color: #aaa;
+      font-size: 13px;
+      margin-bottom: 10px;
     }
 
     .song {
@@ -98,29 +105,14 @@
       border-left: 3px solid #fff;
     }
 
-    .file-type {
-      display: inline-block;
-      min-width: 52px;
-      margin-right: 8px;
-      color: #aaa;
-      font-size: 12px;
-    }
-
     #status {
-      padding: 16px 4px;
+      padding: 15px;
       text-align: center;
       color: #aaa;
-      overflow-wrap: anywhere;
     }
 
     .error {
       color: #ff8888 !important;
-    }
-
-    .count {
-      color: #aaa;
-      font-size: 13px;
-      margin-bottom: 10px;
     }
 
     @media (max-width: 500px) {
@@ -147,7 +139,7 @@
       <div id="fileName">No file selected</div>
 
       <video
-        id="mediaPlayer"
+        id="videoPlayer"
         controls
         playsinline
         preload="metadata"
@@ -168,10 +160,24 @@
       </div>
     </div>
 
-    <div class="playlist">
-      <div id="count" class="count"></div>
-      <div id="status">Loading files from GitHub...</div>
-      <div id="playlist"></div>
+    <div id="status">Loading files from GitHub...</div>
+
+    <div class="section">
+      <h2>MP3</h2>
+      <div id="mp3Count" class="section-count">0 files</div>
+      <div id="mp3List"></div>
+    </div>
+
+    <div class="section">
+      <h2>MP4</h2>
+      <div id="mp4Count" class="section-count">0 files</div>
+      <div id="mp4List"></div>
+    </div>
+
+    <div class="section">
+      <h2>WEBM</h2>
+      <div id="webmCount" class="section-count">0 files</div>
+      <div id="webmList"></div>
     </div>
   </div>
 
@@ -182,13 +188,26 @@
     const RAW_URL =
       "https://raw.githubusercontent.com/Baiyanscript/music/main/funk/";
 
-    const video = document.getElementById("mediaPlayer");
+    const video = document.getElementById("videoPlayer");
     const audio = document.getElementById("audioPlayer");
     const fileName = document.getElementById("fileName");
-    const playlist = document.getElementById("playlist");
     const status = document.getElementById("status");
-    const count = document.getElementById("count");
     const randomButton = document.getElementById("randomButton");
+
+    const sections = {
+      ".mp3": {
+        list: document.getElementById("mp3List"),
+        count: document.getElementById("mp3Count")
+      },
+      ".mp4": {
+        list: document.getElementById("mp4List"),
+        count: document.getElementById("mp4Count")
+      },
+      ".webm": {
+        list: document.getElementById("webmList"),
+        count: document.getElementById("webmCount")
+      }
+    };
 
     let files = [];
     let currentIndex = -1;
@@ -199,16 +218,6 @@
       return dot >= 0 ? name.slice(dot).toLowerCase() : "";
     }
 
-    function getFileType(name) {
-      const ext = getExtension(name);
-
-      if (ext === ".mp3") return "MP3";
-      if (ext === ".mp4") return "MP4";
-      if (ext === ".webm") return "WEBM";
-
-      return "";
-    }
-
     async function loadFiles() {
       try {
         const response = await fetch(API_URL);
@@ -216,7 +225,7 @@
         if (!response.ok) {
           if (response.status === 403) {
             throw new Error(
-              "GitHub API rate limit reached. Please try again later."
+              "GitHub API rate limit reached. Try again later."
             );
           }
 
@@ -234,45 +243,53 @@
         files = data
           .filter(item =>
             item.type === "file" &&
-            [".mp3", ".mp4", ".webm"].includes(
+            Object.keys(sections).includes(
               getExtension(item.name)
             )
           )
-          .sort((a, b) =>
-            a.name.localeCompare(b.name)
-          );
+          .sort((a, b) => a.name.localeCompare(b.name));
+
+        Object.values(sections).forEach(section => {
+          section.list.replaceChildren();
+        });
+
+        files.forEach((file, index) => {
+          const ext = getExtension(file.name);
+          const section = sections[ext];
+
+          const item = document.createElement("div");
+          item.className = "song";
+          item.textContent = file.name;
+
+          item.addEventListener("click", () => {
+            playFile(index);
+          });
+
+          section.list.appendChild(item);
+        });
+
+        Object.entries(sections).forEach(([ext, section]) => {
+          const total = files.filter(
+            file => getExtension(file.name) === ext
+          ).length;
+
+          section.count.textContent = total + " files";
+        });
 
         if (files.length === 0) {
-          status.textContent = "No MP3, MP4 or WEBM files found.";
+          status.textContent =
+            "No MP3, MP4 or WEBM files found.";
           return;
         }
 
         status.hidden = true;
-        count.textContent = "Files found: " + files.length;
-
-        files.forEach((file, index) => {
-          const item = document.createElement("div");
-          item.className = "song";
-
-          const type = document.createElement("span");
-          type.className = "file-type";
-          type.textContent = getFileType(file.name);
-
-          const name = document.createElement("span");
-          name.textContent = file.name;
-
-          item.append(type, name);
-          item.addEventListener("click", () => playFile(index));
-
-          playlist.appendChild(item);
-        });
-
         playFile(0, false);
 
       } catch (error) {
         console.error(error);
         status.className = "error";
-        status.textContent = "Unable to load files: " + error.message;
+        status.textContent =
+          "Unable to load files: " + error.message;
       }
     }
 
@@ -283,14 +300,13 @@
 
       const file = files[index];
       const ext = getExtension(file.name);
+
       const url = RAW_URL +
         file.name.split("/").map(encodeURIComponent).join("/");
 
       fileName.textContent = file.name;
 
-      const isAudio = ext === ".mp3";
-
-      if (isAudio) {
+      if (ext === ".mp3") {
         video.pause();
         video.removeAttribute("src");
         video.load();
@@ -322,9 +338,25 @@
     }
 
     function updateActiveFile() {
-      document.querySelectorAll(".song").forEach((item, index) => {
-        item.classList.toggle("active", index === currentIndex);
+      document.querySelectorAll(".song").forEach(item => {
+        item.classList.remove("active");
       });
+
+      const ext = getExtension(files[currentIndex].name);
+      const section = sections[ext];
+
+      const items = section.list.querySelectorAll(".song");
+      const sectionFiles = files.filter(
+        file => getExtension(file.name) === ext
+      );
+
+      const localIndex = sectionFiles.findIndex(
+        file => file.name === files[currentIndex].name
+      );
+
+      if (items[localIndex]) {
+        items[localIndex].classList.add("active");
+      }
     }
 
     function nextFile() {
@@ -354,8 +386,10 @@
 
     function toggleRandom() {
       randomMode = !randomMode;
+
       randomButton.textContent =
         randomMode ? "Random: On" : "Random: Off";
+
       randomButton.classList.toggle("active", randomMode);
     }
 
