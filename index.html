@@ -6,9 +6,7 @@
   <title>Funk Media Player</title>
 
   <style>
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     body {
       margin: 0;
@@ -28,8 +26,7 @@
       font-size: 28px;
     }
 
-    .now-playing,
-    .section {
+    .now-playing, .section, .audio-panel {
       background: #1d1d1d;
       border-radius: 12px;
       padding: 16px;
@@ -51,9 +48,7 @@
       border-radius: 8px;
     }
 
-    #audioPlayer {
-      width: 100%;
-    }
+    #audioPlayer { width: 100%; }
 
     .controls {
       display: flex;
@@ -63,7 +58,7 @@
       margin-top: 15px;
     }
 
-    button {
+    button, select {
       background: #333;
       color: #fff;
       border: 1px solid #555;
@@ -73,12 +68,9 @@
       cursor: pointer;
     }
 
-    button:hover,
-    button.active {
-      background: #555;
-    }
+    button:hover, button.active { background: #555; }
 
-    .section h2 {
+    .section h2, .audio-panel h2 {
       margin-top: 0;
       font-size: 20px;
     }
@@ -96,9 +88,7 @@
       overflow-wrap: anywhere;
     }
 
-    .song:hover {
-      background: #333;
-    }
+    .song:hover { background: #333; }
 
     .song.active {
       background: #444;
@@ -111,22 +101,51 @@
       color: #aaa;
     }
 
-    .error {
-      color: #ff8888 !important;
+    .error { color: #ff8888 !important; }
+
+    .audio-panel label {
+      display: block;
+      margin: 14px 0 6px;
+      color: #ddd;
+      font-size: 14px;
+    }
+
+    .audio-panel input[type="range"] {
+      width: 100%;
+      accent-color: #aaa;
+    }
+
+    .value-row {
+      display: flex;
+      justify-content: space-between;
+      color: #aaa;
+      font-size: 12px;
+    }
+
+    .preset-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .preset-grid button {
+      width: 100%;
+      padding: 10px 5px;
+    }
+
+    .audio-note {
+      color: #999;
+      font-size: 12px;
+      line-height: 1.5;
+      margin-top: 12px;
     }
 
     @media (max-width: 500px) {
-      .player {
-        padding: 12px;
-      }
-
-      h1 {
-        font-size: 23px;
-      }
-
-      button {
-        padding: 10px 12px;
-      }
+      .player { padding: 12px; }
+      h1 { font-size: 23px; }
+      button { padding: 10px 12px; }
+      .preset-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
   </style>
 </head>
@@ -138,25 +157,80 @@
     <div class="now-playing">
       <div id="fileName">No file selected</div>
 
-      <video
-        id="videoPlayer"
-        controls
-        playsinline
-        preload="metadata"
-        hidden>
-      </video>
-
-      <audio
-        id="audioPlayer"
-        controls
-        preload="metadata"
-        hidden>
-      </audio>
+      <video id="videoPlayer" controls playsinline preload="metadata" hidden></video>
+      <audio id="audioPlayer" controls preload="metadata" hidden></audio>
 
       <div class="controls">
         <button id="previousButton">Previous</button>
         <button id="randomButton">Random: Off</button>
         <button id="nextButton">Next</button>
+      </div>
+    </div>
+
+    <div class="audio-panel">
+      <h2>Audio Effects</h2>
+
+      <label for="effectPreset">Sound Effect Preset</label>
+      <select id="effectPreset" style="width:100%">
+        <option value="None">None</option>
+        <option value="Reverb">Reverb</option>
+        <option value="Echo">Echo</option>
+        <option value="Distortion">Distortion</option>
+        <option value="Chorus">Chorus</option>
+        <option value="Flanger">Flanger</option>
+        <option value="Tremolo">Tremolo</option>
+        <option value="Compressor">Compressor</option>
+        <option value="Radio">Radio</option>
+        <option value="Cinema">Cinema</option>
+        <option value="Underwater">Underwater</option>
+        <option value="Kid">Kid</option>
+        <option value="Robot">Robot</option>
+        <option value="Slowed">Slowed</option>
+      </select>
+
+      <div class="preset-grid" id="presetButtons">
+        <button data-preset="None" class="active">None</button>
+        <button data-preset="Reverb">Reverb</button>
+        <button data-preset="Echo">Echo</button>
+        <button data-preset="Distortion">Distortion</button>
+        <button data-preset="Chorus">Chorus</button>
+        <button data-preset="Flanger">Flanger</button>
+        <button data-preset="Tremolo">Tremolo</button>
+        <button data-preset="Compressor">Compressor</button>
+        <button data-preset="Radio">Radio</button>
+        <button data-preset="Cinema">Cinema</button>
+        <button data-preset="Underwater">Underwater</button>
+        <button data-preset="Kid">Kid</button>
+        <button data-preset="Robot">Robot</button>
+        <button data-preset="Slowed">Slowed</button>
+      </div>
+
+      <label for="volumeControl">Volume</label>
+      <input id="volumeControl" type="range" min="0" max="2" step="0.01" value="1">
+      <div class="value-row"><span>0%</span><span id="volumeValue">100%</span><span>200%</span></div>
+
+      <label for="pitchControl">Pitch / Speed</label>
+      <input id="pitchControl" type="range" min="0.5" max="2" step="0.01" value="1">
+      <div class="value-row"><span>0.5x</span><span id="pitchValue">1.00x</span><span>2.0x</span></div>
+
+      <label for="bassControl">Bass</label>
+      <input id="bassControl" type="range" min="-24" max="24" step="1" value="0">
+      <div class="value-row"><span>-24 dB</span><span id="bassValue">0 dB</span><span>+24 dB</span></div>
+
+      <label for="midControl">Mid</label>
+      <input id="midControl" type="range" min="-24" max="24" step="1" value="0">
+      <div class="value-row"><span>-24 dB</span><span id="midValue">0 dB</span><span>+24 dB</span></div>
+
+      <label for="trebleControl">Treble</label>
+      <input id="trebleControl" type="range" min="-24" max="24" step="1" value="0">
+      <div class="value-row"><span>-24 dB</span><span id="trebleValue">0 dB</span><span>+24 dB</span></div>
+
+      <div class="controls">
+        <button id="resetAudioButton">Reset Audio</button>
+      </div>
+
+      <div class="audio-note">
+        Audio effects are processed in your browser. Click Play if your browser requires user interaction to start audio processing.
       </div>
     </div>
 
@@ -213,6 +287,412 @@
     let currentIndex = -1;
     let randomMode = false;
 
+    // Web Audio setup
+    let audioContext = null;
+    let currentPreset = "None";
+    const audioGraphs = new Map();
+
+    const controls = {
+      volume: document.getElementById("volumeControl"),
+      pitch: document.getElementById("pitchControl"),
+      bass: document.getElementById("bassControl"),
+      mid: document.getElementById("midControl"),
+      treble: document.getElementById("trebleControl")
+    };
+
+    const presetSettings = {
+      None:        { volume: 1, pitch: 1, bass: 0, mid: 0, treble: 0 },
+      Reverb:      { volume: 1, pitch: 1, bass: 0, mid: 0, treble: 0 },
+      Echo:        { volume: 1, pitch: 1, bass: 0, mid: 0, treble: 2 },
+      Distortion:  { volume: 0.8, pitch: 1, bass: 2, mid: 3, treble: 2 },
+      Chorus:      { volume: 1, pitch: 1, bass: 0, mid: 2, treble: 2 },
+      Flanger:     { volume: 1, pitch: 1, bass: 0, mid: 1, treble: 2 },
+      Tremolo:     { volume: 1, pitch: 1, bass: 0, mid: 0, treble: 1 },
+      Compressor:  { volume: 1, pitch: 1, bass: 1, mid: 0, treble: 1 },
+      Radio:       { volume: 1, pitch: 1, bass: -8, mid: 5, treble: -5 },
+      Cinema:      { volume: 1, pitch: 1, bass: 6, mid: -2, treble: 2 },
+      Underwater:  { volume: 1, pitch: 1, bass: 4, mid: -12, treble: -20 },
+      Kid:         { volume: 1, pitch: 1.45, bass: -5, mid: 2, treble: 4 },
+      Robot:       { volume: 1, pitch: 1, bass: -5, mid: 5, treble: 2 },
+      Slowed:      { volume: 1, pitch: 0.72, bass: 8, mid: -2, treble: -12 }
+    };
+
+    function getAudioContext() {
+      if (!audioContext) {
+        const AudioContextClass =
+          window.AudioContext || window.webkitAudioContext;
+
+        if (!AudioContextClass) {
+          throw new Error("Web Audio API is not supported by this browser.");
+        }
+
+        audioContext = new AudioContextClass();
+      }
+
+      return audioContext;
+    }
+
+    function makeDistortionCurve(amount) {
+      const samples = 44100;
+      const curve = new Float32Array(samples);
+      const degree = Math.max(1, amount);
+
+      for (let i = 0; i < samples; i++) {
+        const x = i * 2 / samples - 1;
+        curve[i] =
+          (3 + degree) * x * 20 * Math.PI / 180 /
+          (Math.PI + degree * Math.abs(x));
+      }
+
+      return curve;
+    }
+
+    function createImpulse(context, seconds = 2, decay = 2) {
+      const length = context.sampleRate * seconds;
+      const impulse = context.createBuffer(
+        2, length, context.sampleRate
+      );
+
+      for (let channel = 0; channel < 2; channel++) {
+        const data = impulse.getChannelData(channel);
+
+        for (let i = 0; i < length; i++) {
+          data[i] =
+            (Math.random() * 2 - 1) *
+            Math.pow(1 - i / length, decay);
+        }
+      }
+
+      return impulse;
+    }
+
+    function createEffect(context, preset) {
+      if (preset === "None" ||
+          preset === "Cinema" ||
+          preset === "Underwater" ||
+          preset === "Kid" ||
+          preset === "Slowed") {
+        return null;
+      }
+
+      const input = context.createGain();
+      const output = context.createGain();
+      const nodes = [];
+      const oscillators = [];
+
+      function connect(node) {
+        nodes.push(node);
+        return node;
+      }
+
+      if (preset === "Reverb") {
+        const convolver = connect(context.createConvolver());
+        const wet = connect(context.createGain());
+        const dry = connect(context.createGain());
+
+        convolver.buffer = createImpulse(context, 2.5, 2.5);
+        wet.gain.value = 0.45;
+        dry.gain.value = 0.75;
+
+        input.connect(dry);
+        input.connect(convolver);
+        convolver.connect(wet);
+        dry.connect(output);
+        wet.connect(output);
+      }
+
+      else if (preset === "Echo") {
+        const dry = connect(context.createGain());
+        const delay = connect(context.createDelay(2));
+        const feedback = connect(context.createGain());
+        const wet = connect(context.createGain());
+
+        delay.delayTime.value = 0.32;
+        feedback.gain.value = 0.38;
+        wet.gain.value = 0.5;
+        dry.gain.value = 0.8;
+
+        input.connect(dry);
+        input.connect(delay);
+        delay.connect(feedback);
+        feedback.connect(delay);
+        delay.connect(wet);
+        dry.connect(output);
+        wet.connect(output);
+      }
+
+      else if (preset === "Distortion" || preset === "Radio") {
+        const shaper = connect(context.createWaveShaper());
+        shaper.curve = makeDistortionCurve(
+          preset === "Radio" ? 180 : 350
+        );
+        shaper.oversample = "4x";
+        input.connect(shaper);
+
+        if (preset === "Radio") {
+          const compressor = connect(
+            context.createDynamicsCompressor()
+          );
+          compressor.threshold.value = -28;
+          compressor.ratio.value = 8;
+          shaper.connect(compressor);
+          compressor.connect(output);
+        } else {
+          shaper.connect(output);
+        }
+      }
+
+      else if (preset === "Compressor") {
+        const compressor = connect(
+          context.createDynamicsCompressor()
+        );
+        compressor.threshold.value = -24;
+        compressor.knee.value = 20;
+        compressor.ratio.value = 6;
+        compressor.attack.value = 0.005;
+        compressor.release.value = 0.2;
+        input.connect(compressor);
+        compressor.connect(output);
+      }
+
+      else if (preset === "Tremolo") {
+        const gain = connect(context.createGain());
+        const oscillator = context.createOscillator();
+        const depth = context.createGain();
+
+        oscillator.type = "sine";
+        oscillator.frequency.value = 7;
+        depth.gain.value = 0.42;
+
+        oscillator.connect(depth);
+        depth.connect(gain.gain);
+        oscillator.start();
+        oscillators.push(oscillator);
+
+        input.connect(gain);
+        gain.connect(output);
+      }
+
+      else if (preset === "Chorus" || preset === "Flanger") {
+        const dry = connect(context.createGain());
+        const delay = connect(context.createDelay(0.1));
+        const wet = connect(context.createGain());
+        const oscillator = context.createOscillator();
+        const modulation = context.createGain();
+
+        const isFlanger = preset === "Flanger";
+
+        delay.delayTime.value = isFlanger ? 0.004 : 0.025;
+        oscillator.frequency.value = isFlanger ? 0.35 : 0.8;
+        modulation.gain.value = isFlanger ? 0.003 : 0.008;
+        wet.gain.value = 0.45;
+        dry.gain.value = 0.8;
+
+        oscillator.connect(modulation);
+        modulation.connect(delay.delayTime);
+        oscillator.start();
+        oscillators.push(oscillator);
+
+        input.connect(dry);
+        input.connect(delay);
+        delay.connect(wet);
+        dry.connect(output);
+        wet.connect(output);
+      }
+
+      return {
+        input,
+        output,
+        dispose() {
+          oscillators.forEach(oscillator => {
+            try { oscillator.stop(); } catch (_) {}
+            try { oscillator.disconnect(); } catch (_) {}
+          });
+
+          nodes.forEach(node => {
+            try { node.disconnect(); } catch (_) {}
+          });
+
+          try { input.disconnect(); } catch (_) {}
+          try { output.disconnect(); } catch (_) {}
+        }
+      };
+    }
+
+    function createGraph(element) {
+      const context = getAudioContext();
+
+      let graph = audioGraphs.get(element);
+      if (graph) return graph;
+
+      const source = context.createMediaElementSource(element);
+      const volume = context.createGain();
+
+      const bass = context.createBiquadFilter();
+      bass.type = "lowshelf";
+      bass.frequency.value = 180;
+
+      const mid = context.createBiquadFilter();
+      mid.type = "peaking";
+      mid.frequency.value = 1000;
+      mid.Q.value = 0.8;
+
+      const treble = context.createBiquadFilter();
+      treble.type = "highshelf";
+      treble.frequency.value = 4500;
+
+      const output = context.createGain();
+
+      graph = {
+        source, volume, bass, mid, treble, output,
+        effect: null
+      };
+
+      source.connect(volume);
+      volume.connect(bass);
+      bass.connect(mid);
+      mid.connect(treble);
+
+      audioGraphs.set(element, graph);
+      applyGraphSettings(element);
+
+      return graph;
+    }
+
+    function applyGraphSettings(element) {
+      const context = getAudioContext();
+      const graph = createGraphIfMissing(element);
+      if (!graph) return;
+
+      const now = context.currentTime;
+
+      graph.volume.gain.setTargetAtTime(
+        Number(controls.volume.value), now, 0.015
+      );
+
+      graph.bass.gain.setTargetAtTime(
+        Number(controls.bass.value), now, 0.015
+      );
+
+      graph.mid.gain.setTargetAtTime(
+        Number(controls.mid.value), now, 0.015
+      );
+
+      graph.treble.gain.setTargetAtTime(
+        Number(controls.treble.value), now, 0.015
+      );
+
+      if (graph.effect) {
+        graph.effect.dispose();
+        graph.effect = null;
+      }
+
+      try { graph.treble.disconnect(); } catch (_) {}
+
+      const effect = createEffect(context, currentPreset);
+      if (effect) {
+        graph.effect = effect;
+        graph.treble.connect(effect.input);
+        effect.output.connect(graph.output);
+      } else {
+        graph.treble.connect(graph.output);
+      }
+
+      graph.output.connect(context.destination);
+    }
+
+    function createGraphIfMissing(element) {
+      return audioGraphs.get(element) || createGraph(element);
+    }
+
+    function applyToBothPlayers() {
+      try {
+        getAudioContext();
+
+        [audio, video].forEach(element => {
+          applyGraphSettings(element);
+        });
+      } catch (error) {
+        console.error("Audio processing error:", error);
+        status.hidden = false;
+        status.className = "error";
+        status.textContent = "Audio effects unavailable: " + error.message;
+      }
+    }
+
+    function updateControlLabels() {
+      document.getElementById("volumeValue").textContent =
+        Math.round(Number(controls.volume.value) * 100) + "%";
+
+      document.getElementById("pitchValue").textContent =
+        Number(controls.pitch.value).toFixed(2) + "x";
+
+      document.getElementById("bassValue").textContent =
+        Number(controls.bass.value) + " dB";
+
+      document.getElementById("midValue").textContent =
+        Number(controls.mid.value) + " dB";
+
+      document.getElementById("trebleValue").textContent =
+        Number(controls.treble.value) + " dB";
+    }
+
+    function updatePlaybackRate() {
+      const rate = Number(controls.pitch.value);
+      audio.playbackRate = rate;
+      video.playbackRate = rate;
+    }
+
+    function setPreset(preset) {
+      if (!presetSettings[preset]) return;
+
+      currentPreset = preset;
+      document.getElementById("effectPreset").value = preset;
+
+      document.querySelectorAll("[data-preset]").forEach(button => {
+        button.classList.toggle(
+          "active",
+          button.dataset.preset === preset
+        );
+      });
+
+      const settings = presetSettings[preset];
+
+      Object.keys(settings).forEach(key => {
+        controls[key].value = settings[key];
+      });
+
+      updateControlLabels();
+      updatePlaybackRate();
+      applyToBothPlayers();
+    }
+
+    document.getElementById("effectPreset")
+      .addEventListener("change", event => {
+        setPreset(event.target.value);
+      });
+
+    document.getElementById("presetButtons")
+      .addEventListener("click", event => {
+        const button = event.target.closest("[data-preset]");
+        if (button) setPreset(button.dataset.preset);
+      });
+
+    Object.values(controls).forEach(control => {
+      control.addEventListener("input", () => {
+        updateControlLabels();
+        updatePlaybackRate();
+        applyToBothPlayers();
+      });
+    });
+
+    document.getElementById("resetAudioButton")
+      .addEventListener("click", () => {
+        setPreset("None");
+      });
+
+    updateControlLabels();
+
     function getExtension(name) {
       const dot = name.lastIndexOf(".");
       return dot >= 0 ? name.slice(dot).toLowerCase() : "";
@@ -229,9 +709,7 @@
             );
           }
 
-          throw new Error(
-            "GitHub request failed: " + response.status
-          );
+          throw new Error("GitHub request failed: " + response.status);
         }
 
         const data = await response.json();
@@ -243,9 +721,7 @@
         files = data
           .filter(item =>
             item.type === "file" &&
-            Object.keys(sections).includes(
-              getExtension(item.name)
-            )
+            Object.keys(sections).includes(getExtension(item.name))
           )
           .sort((a, b) => a.name.localeCompare(b.name));
 
@@ -261,10 +737,7 @@
           item.className = "song";
           item.textContent = file.name;
 
-          item.addEventListener("click", () => {
-            playFile(index);
-          });
-
+          item.addEventListener("click", () => playFile(index));
           section.list.appendChild(item);
         });
 
@@ -277,8 +750,7 @@
         });
 
         if (files.length === 0) {
-          status.textContent =
-            "No MP3, MP4 or WEBM files found.";
+          status.textContent = "No MP3, MP4 or WEBM files found.";
           return;
         }
 
@@ -288,8 +760,18 @@
       } catch (error) {
         console.error(error);
         status.className = "error";
-        status.textContent =
-          "Unable to load files: " + error.message;
+        status.textContent = "Unable to load files: " + error.message;
+      }
+    }
+
+    async function resumeAudioContext() {
+      try {
+        const context = getAudioContext();
+        if (context.state === "suspended") {
+          await context.resume();
+        }
+      } catch (error) {
+        console.warn("Could not resume AudioContext:", error);
       }
     }
 
@@ -312,12 +794,16 @@
         video.load();
         video.hidden = true;
 
+        audio.pause();
+        audio.crossOrigin = "anonymous";
         audio.hidden = false;
         audio.src = url;
         audio.load();
 
         if (autoplay) {
-          audio.play().catch(() => {});
+          resumeAudioContext().then(() => {
+            audio.play().catch(() => {});
+          });
         }
       } else {
         audio.pause();
@@ -325,12 +811,16 @@
         audio.load();
         audio.hidden = true;
 
+        video.pause();
+        video.crossOrigin = "anonymous";
         video.hidden = false;
         video.src = url;
         video.load();
 
         if (autoplay) {
-          video.play().catch(() => {});
+          resumeAudioContext().then(() => {
+            video.play().catch(() => {});
+          });
         }
       }
 
@@ -341,6 +831,8 @@
       document.querySelectorAll(".song").forEach(item => {
         item.classList.remove("active");
       });
+
+      if (!files[currentIndex]) return;
 
       const ext = getExtension(files[currentIndex].name);
       const section = sections[ext];
@@ -404,6 +896,8 @@
     audio.addEventListener("ended", nextFile);
     video.addEventListener("ended", nextFile);
 
+    // Create processing graphs after the browser has loaded the page.
+    // They are reused for later tracks on each media element.
     loadFiles();
   </script>
 </body>
